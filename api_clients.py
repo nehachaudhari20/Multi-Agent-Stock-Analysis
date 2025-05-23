@@ -1,23 +1,46 @@
 import os
 from dotenv import load_dotenv
 import requests
-import yfinance as yf
-import logging
+from datetime import datetime
 
 ALPHA_API_KEY = os.getenv("APLHA_VENTAGE_API_KEY")
 
-logging.basicConfig(level=logging.INFO)
+def get_recent_news(ticker, max_articles=5):
+    #Fetch recent news articles for a given stock ticker from Alpha Vantage.
+    url = (
+        f"https://www.alphavantage.co/query?"
+        f"function=NEWS_SENTIMENT&tickers={ticker}&apikey={ALPHA_API_KEY}"
+    )
 
-import finnhub
-
-def get_recent_news(ticker):
-    finnhub_client = finnhub.Client(api_key="d0obdhpr01qu2361jl80d0obdhpr01qu2361jl8g")
     try:
-        news = finnhub_client.company_news(ticker, _from="2024-05-01", to="2024-05-23")
-        top_news = news[:3]
-        return [f"{item['headline']} - {item['url']}" for item in top_news]
-    except Exception as e:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+
+        news_feed = data.get("feed", [])
+        if not news_feed:
+            return []
+
+        news_feed.sort(key=lambda x: x.get("time_published", ""), reverse=True)
+
+        articles = []
+        for article in news_feed[:max_articles]:
+            title = article.get("title", "No title")
+            url = article.get("url", "No link")
+            published_time = article.get("time_published", "")
+            if published_time:
+                published_time = datetime.strptime(published_time, "%Y%m%dT%H%M%S")
+                published_str = published_time.strftime("%Y-%m-%d %H:%M")
+            else:
+                published_str = "Unknown date"
+
+            articles.append(f"{title} ({published_str}) - [Link]({url})")
+
+        return articles
+
+    except requests.exceptions.RequestException as e:
         return [f"Error fetching news: {e}"]
+
 
 
 def get_stock_history(ticker, interval="Daily"):
