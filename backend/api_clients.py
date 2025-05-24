@@ -1,12 +1,13 @@
 import os
-from dotenv import load_dotenv
 import requests
+from dotenv import load_dotenv
 from datetime import datetime
 
-ALPHA_API_KEY = os.getenv("APLHA_VENTAGE_API_KEY")
+# Load environment variables
+load_dotenv()
+ALPHA_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")  # ✅ Corrected typo
 
 def get_recent_news(ticker, max_articles=5):
-    #Fetch recent news articles for a given stock ticker from Alpha Vantage.
     url = (
         f"https://www.alphavantage.co/query?"
         f"function=NEWS_SENTIMENT&tickers={ticker}&apikey={ALPHA_API_KEY}"
@@ -42,6 +43,23 @@ def get_recent_news(ticker, max_articles=5):
         return [f"Error fetching news: {e}"]
 
 
+def get_stock_price(ticker):
+    url = f"https://www.alphavantage.co/query"
+    params = {
+        "function": "GLOBAL_QUOTE",
+        "symbol": ticker,
+        "apikey": ALPHA_API_KEY
+    }
+
+    response = requests.get(url, params=params)
+    data = response.json()
+
+    try:
+        price = float(data["Global Quote"]["05. price"])
+        return price
+    except KeyError:
+        return None
+
 
 def get_stock_history(ticker, interval="Daily"):
     url = "https://www.alphavantage.co/query"
@@ -59,21 +77,5 @@ def get_stock_history(ticker, interval="Daily"):
     response = requests.get(url, params=params)
     data = response.json()
 
-    key = list(data.keys())[-1] 
+    key = list(data.keys())[-1]
     return data.get(key, {})
-
-def get_stock_price(ticker):
-    url = f"https://www.alphavantage.co/query"
-    params = {
-        "function": "GLOBAL_QUOTE",
-        "symbol": ticker,
-        "apikey": ALPHA_API_KEY
-    }
-    response = requests.get(url, params=params)
-    data = response.json()
-
-    try:
-        price = float(data["Global Quote"]["05. price"])
-        return price
-    except KeyError:
-        return None
